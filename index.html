@@ -131,22 +131,51 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-async function uploadAvatar() {
-  const file = document.getElementById("avatarUpload").files[0];
-  if (!file) return alert("Please select a file first!");
+async function uploadAvatar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return alert("You must be logged in.");
+  const user = (await client.auth.getUser()).data.user;
+  if (!user) {
+    alert("You must be logged in to upload an avatar.");
+    return;
+  }
 
-  const filePath = `${user.id}/${file.name}`;
-  const { error } = await supabase.storage
-    .from("avatars")
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${user.id}.${fileExt}`;
+  const filePath = `${fileName}`;
+
+  // Upload file
+  let { error: uploadError } = await client.storage
+    .from('avatars')
     .upload(filePath, file, { upsert: true });
 
-  if (error) {
-    console.error("Upload error:", error.message);
-    return alert("Upload failed!");
+  if (uploadError) {
+    console.error("Upload failed:", uploadError);
+    alert("Upload failed: " + uploadError.message);
+    return;
   }
+
+  // Get public URL
+  const { data } = client.storage.from('avatars').getPublicUrl(filePath);
+  const publicUrl = data.publicUrl;
+
+  // Save to profile
+  const { error: profileError } = await client
+    .from('profiles')
+    .update({ avatar_url: publicUrl })
+    .eq('id', user.id);
+
+  if (profileError) {
+    console.error("Error saving avatar URL:", profileError);
+    alert("Could not save avatar URL.");
+    return;
+  }
+
+  alert("Avatar uploaded!");
+  loadPosts(); // refresh feed
+}
+
 
   // Get public URL
   const { data } = supabase.storage
