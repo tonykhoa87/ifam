@@ -61,6 +61,8 @@ async function signIn() {
     }
 }
 
+loadProfile();
+
 async function createPost() {
     const content = document.getElementById('postContent').value;
     const user = (await supabase.auth.getUser()).data.user;
@@ -197,6 +199,34 @@ async function uploadAvatar(event) {
     document.getElementById("avatarPreview").src = avatarUrl;
     alert("Avatar uploaded and saved!");
   }
+}
+
+async function loadProfile() {
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return;
+
+  // fetch profile from Supabase
+  const { data, error } = await client
+    .from('profiles')
+    .select('username, avatar_url')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    console.error("Error loading profile:", error);
+    return;
+  }
+
+  const profileDiv = document.getElementById("profile-info");
+
+  const avatar = data.avatar_url 
+    ? `<img src="${data.avatar_url}" class="avatar">`
+    : `<div class="avatar placeholder"></div>`;
+
+  profileDiv.innerHTML = `
+    ${avatar}
+    <strong>${data.username || "Anonymous"}</strong>
+  `;
 }
 
 </script>
