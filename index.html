@@ -3,81 +3,146 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Social Hobby App</title>
-  <link rel="stylesheet" href="style.css">
+  <title>My Social Hobby</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f7;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      background: #0070f3;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005bb5;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .profile {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .post-header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+    .date {
+      margin-left: auto;
+      font-size: 0.8em;
+      color: gray;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Social Hobby Network</h1>
+    <h1>My Social Hobby</h1>
 
-    <!-- Auth Section -->
-    <div id="auth-section">
-      <h2>Sign Up / Login</h2>
+    <!-- Profile Info -->
+    <div id="profile-section" class="profile" style="display:none;">
+      <img id="profile-avatar" src="https://via.placeholder.com/80" alt="Avatar">
+      <p><strong id="profile-username"></strong></p>
+      <input type="file" id="avatarUpload" onchange="uploadAvatar(event)" />
+    </div>
+
+    <!-- Auth -->
+    <div id="auth-section" class="card">
+      <h2>Login / Sign Up</h2>
       <input type="email" id="email" placeholder="Email">
       <input type="password" id="password" placeholder="Password">
       <button onclick="signUp()">Sign Up</button>
       <button onclick="signIn()">Login</button>
     </div>
 
-    <!-- Profile Section -->
-    <div id="avatar-section" style="display:none;">
-      <h3>Upload Profile Picture</h3>
-      <input type="file" id="avatarUpload" />
-      <button onclick="uploadAvatar()">Upload</button>
-      <br>
-      <img id="avatarPreview" src="" alt="Your avatar" width="100" style="margin-top:10px;" />
+    <!-- Post Creator -->
+    <div id="post-section" class="card" style="display:none;">
+      <h2>Create Post</h2>
+      <textarea id="postContent" placeholder="What's on your mind?"></textarea>
+      <button onclick="createPost()">Post</button>
     </div>
 
-    <!-- Post Section -->
-    <div id="post-section" style="display:none;">
-      <h2>Create Post</h2>
-      <textarea id="postContent" placeholder="Write something..."></textarea>
-      <button onclick="createPost()">Post</button>
-      <h2>Feed</h2>
-      <div id="feed"></div>
-    </div>
+    <!-- Feed -->
+    <div id="feed"></div>
   </div>
 
 <script>
-const SUPABASE_URL = "https://kyqzckrnmvoafjajxncr.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5cXpja3JubXZvYWZqYWp4bmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMDQ1MjMsImV4cCI6MjA3MDg4MDUyM30.naSMdTVqXngWBOCd_0Rml28crAhnGwPoLTVh7sLNlqQ"; 
+const SUPABASE_URL = "YOUR_URL_HERE";
+const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- AUTH ---
+// ---------- AUTH ----------
 async function signUp() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
   let { error } = await supabase.auth.signUp({ email, password });
   if (error) alert(error.message);
-  else alert("Check your email for confirmation link!");
+  else alert("Check your email to confirm signup!");
 }
 
 async function signIn() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
   let { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) alert(error.message);
-  else {
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('post-section').style.display = 'block';
-    document.getElementById('avatar-section').style.display = 'block';
-    loadPosts();
+}
+
+// ---------- PROFILE ----------
+async function loadProfile() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data, error } = await supabase.from("profiles").select("username, avatar_url").eq("id", user.id).single();
+  if (!error && data) {
+    document.getElementById("profile-avatar").src = data.avatar_url || "https://via.placeholder.com/80";
+    document.getElementById("profile-username").textContent = data.username || user.email;
   }
 }
 
-// --- POSTS ---
+// ---------- POSTS ----------
 async function createPost() {
-  const content = document.getElementById('postContent').value;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return alert("Not logged in");
-
-  const { error } = await supabase.from('posts').insert([
-    { user_id: user.id, content }
-  ]);
+  const content = document.getElementById("postContent").value;
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) return alert("You must login first.");
+  const { error } = await supabase.from("posts").insert([{ user_id: user.id, content }]);
   if (error) alert(error.message);
   else {
-    document.getElementById('postContent').value = '';
+    document.getElementById("postContent").value = "";
     loadPosts();
   }
 }
@@ -85,90 +150,59 @@ async function createPost() {
 async function loadPosts() {
   const { data, error } = await supabase
     .from("posts")
-    .select(`
-      id,
-      content,
-      created_at,
-      profiles (
-        username,
-        avatar_url
-      )
-    `)
+    .select("id, content, created_at, profiles(username, avatar_url)")
     .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error loading posts:", error);
-    return;
-  }
+  if (error) return console.error(error);
 
   const feed = document.getElementById("feed");
   feed.innerHTML = "";
-
   data.forEach(post => {
-    const postDiv = document.createElement("div");
-    postDiv.className = "post";
-
-    const avatar = post.profiles?.avatar_url 
-      ? `<img src="${post.profiles.avatar_url}" class="avatar">`
-      : `<div class="avatar placeholder"></div>`;
-
-    const username = post.profiles?.username || "Anonymous";
-
-    postDiv.innerHTML = `
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
       <div class="post-header">
-        ${avatar}
-        <span class="username">${username}</span>
+        <img src="${post.profiles?.avatar_url || "https://via.placeholder.com/40"}">
+        <b>${post.profiles?.username || "Anonymous"}</b>
         <span class="date">${new Date(post.created_at).toLocaleString()}</span>
       </div>
-      <div class="post-content">${post.content}</div>
+      <p>${post.content}</p>
     `;
-
-    feed.appendChild(postDiv);
+    feed.appendChild(div);
   });
 }
 
-// --- AVATAR UPLOAD ---
-async function uploadAvatar() {
-  const file = document.getElementById("avatarUpload").files[0];
+// ---------- AVATAR UPLOAD ----------
+async function uploadAvatar(event) {
+  const file = event.target.files[0];
   if (!file) return;
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) return alert("Login required");
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    alert("You must be logged in to upload an avatar.");
-    return;
-  }
+  const ext = file.name.split('.').pop();
+  const filePath = `${user.id}.${ext}`;
 
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${user.id}.${fileExt}`;
-  const filePath = fileName;
+  let { error } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true });
+  if (error) return alert("Upload failed: " + error.message);
 
-  // Upload file
-  let { error: uploadError } = await supabase.storage
-    .from('avatars')
-    .upload(filePath, file, { upsert: true });
-
-  if (uploadError) {
-    alert("Upload failed: " + uploadError.message);
-    return;
-  }
-
-  // Get public URL
-  const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-  const avatarUrl = data.publicUrl;
-
-  // Save avatar URL into profiles table
-  const { error: dbError } = await supabase
-    .from("profiles")
-    .update({ avatar_url: avatarUrl })
-    .eq("id", user.id);
-
-  if (dbError) {
-    alert("Avatar uploaded, but saving to profile failed.");
-  } else {
-    document.getElementById("avatarPreview").src = avatarUrl;
-    alert("Avatar uploaded and saved!");
-  }
+  const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+  await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+  loadProfile();
 }
+
+// ---------- AUTH STATE LISTENER ----------
+supabase.auth.onAuthStateChange((_event, session) => {
+  if (session) {
+    document.getElementById("auth-section").style.display = "none";
+    document.getElementById("profile-section").style.display = "block";
+    document.getElementById("post-section").style.display = "block";
+    loadProfile();
+    loadPosts();
+  } else {
+    document.getElementById("auth-section").style.display = "block";
+    document.getElementById("profile-section").style.display = "none";
+    document.getElementById("post-section").style.display = "none";
+  }
+});
 </script>
 </body>
 </html>
